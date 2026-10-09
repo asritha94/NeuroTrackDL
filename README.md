@@ -264,6 +264,6 @@ The objective of NeuroTrackDL is to develop a real-time fatigue monitoring appli
 ## 👩‍💻 Author
 
 I. Asritha 
-GitHub Repository : 
+GitHub Repository : https://github.com/asritha94/NeuroTrackDL
 
 
