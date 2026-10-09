@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NeuroTrackDL Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 36px 28px 44px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f3f6fb;
+            color: #243247;
+        }
+
+        h2 {
+            margin: 0 0 28px;
+            text-align: center;
+            color: #1e3c72;
+            font-size: 26px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .box {
+            min-width: 0;
+            padding: 22px;
+            background: #ffffff;
+            border: 1px solid #e5ebf3;
+            border-top: 4px solid #2a5298;
+            border-radius: 12px;
+            box-shadow: 0 5px 18px rgba(30, 60, 114, 0.07);
+            text-align: center;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(30, 60, 114, 0.12);
+        }
+
+        .box h3 {
+            margin: 0 0 14px;
+            color: #42536b;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .timer-card {
+            grid-column: 1;
+            grid-row: 1;
+            border-top-color: #2a5298;
+        }
+
+        .fatigue-card {
+            grid-column: 2;
+            grid-row: 1;
+            border-top-color: #168c87;
+        }
+
+        .blink-card {
+            grid-column: 3;
+            grid-row: 1;
+            border-top-color: #6c63b5;
+        }
+
+        .pose-card {
+            grid-column: 4;
+            grid-row: 1;
+            border-top-color: #4386bd;
+        }
+
+        .webcam-card {
+            grid-column: 1 / span 2;
+            grid-row: 2;
+            border-top-color: #2a5298;
+        }
+
+        .chart-card {
+            grid-column: 3 / span 2;
+            grid-row: 2;
+            border-top-color: #168c87;
+        }
+
+        .suggestion-card {
+            grid-column: 2 / span 2;
+            grid-row: 3;
+            border-top-color: #d49a38;
+        }
+
+        .retake-button {
+            grid-column: 2 / span 2;
+            grid-row: 4;
+            justify-self: center;
+            min-width: 220px;
+            padding: 13px 24px;
+            border: 0;
+            border-radius: 8px;
+            background: #2a5298;
+            color: #ffffff;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.2);
+            transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .retake-button:hover:not(:disabled) {
+            background: #1e3c72;
+            box-shadow: 0 6px 16px rgba(42, 82, 152, 0.26);
+        }
+
+        .retake-button:focus-visible {
+            outline: 3px solid rgba(42, 82, 152, 0.35);
+            outline-offset: 3px;
+        }
+
+        .retake-button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        .timer-card,
+        .fatigue-card,
+        .blink-card,
+        .pose-card {
+            min-height: 142px;
+        }
+
+        #fatigue,
+        #blink {
+            margin: 8px 0 0;
+            color: #2a5298;
+        }
+
+        .fatigue-card #fatigue {
+            font-size: 23px;
+        }
+
+        .blink-card #blink {
+            font-size: 32px;
+        }
+
+        .suggestion-card p {
+            margin: 0;
+            color: #52627a;
+            line-height: 1.6;
+        }
+
+        .pose-card p {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 7px 0;
+            color: #52627a;
+            font-size: 14px;
+        }
+
+        .box img {
+            display: block;
+            width: 100%;
+            max-width: 360px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: 6px;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        #timer {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2a5298;
+        }
+
+        @media (max-width: 1000px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .timer-card,
+            .fatigue-card,
+            .blink-card,
+            .pose-card,
+            .webcam-card,
+            .chart-card,
+            .suggestion-card {
+                grid-column: auto;
+                grid-row: auto;
+            }
+
+            .timer-card { order: 1; }
+            .fatigue-card { order: 2; }
+            .blink-card { order: 3; }
+            .pose-card { order: 4; }
+            .webcam-card { order: 5; }
+            .chart-card { order: 6; }
+            .suggestion-card { order: 7; }
+
+            .webcam-card,
+            .chart-card,
+            .suggestion-card {
+                grid-column: span 2;
+            }
+
+            .retake-button {
+                grid-column: span 2;
+                grid-row: auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 26px 16px 32px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 16px;
+            }
+
+            .timer-card,
+            .fatigue-card,
+            .blink-card,
+            .pose-card,
+            .webcam-card,
+            .chart-card,
+            .suggestion-card {
+                grid-column: auto;
+                grid-row: auto;
+            }
+
+            .retake-button {
+                grid-column: auto;
+                grid-row: auto;
+                width: 100%;
+            }
+
+            .box {
+                padding: 19px;
+            }
+
+            .chart-container {
+                height: 220px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .box,
+            .retake-button {
+                transition: none;
+            }
+
+            .box:hover {
+                transform: none;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .pose-card p {
+                font-size: 13px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<h2>🧠 NeuroTrackDL – Fatigue Monitoring</h2>
+
+<main class="dashboard-grid">
+<div class="box timer-card">
+    <h3>⏱ Minute Timer</h3>
+    <div id="timer">01:00</div>
+</div>
+
+<div class="box webcam-card">
+    <h3>Live Webcam</h3>
+    <img id="webcam" width="360">
+</div>
+
+<div class="box fatigue-card">
+    <h3>Fatigue Level</h3>
+    <h2 id="fatigue">ANALYZING</h2>
+</div>
+
+<div class="box suggestion-card">
+    <h3>Suggestion</h3>
+    <p id="suggestion">Collecting data...</p>
+</div>
+
+<div class="box blink-card">
+    <h3>Blink Count</h3>
+    <h1 id="blink">0</h1>
+</div>
+
+<div class="box pose-card">
+    <h3>Head Pose</h3>
+    <p>Pitch: <span id="pitch">0</span></p>
+    <p>Yaw: <span id="yaw">0</span></p>
+    <p>Roll: <span id="roll">0</span></p>
+</div>
+
+<div class="box chart-card">
+    <h3>Eye Aspect Ratio (EAR)</h3>
+    <div class="chart-container">
+        <canvas id="earChart"></canvas>
+    </div>
+</div>
+<button id="retakeButton" class="retake-button" type="button" hidden>Retake Analysis</button>
+</main>
+
+<script>
+/* ================= GRAPH ================= */
+let labels = [];
+let earData = [];
+
+const ctx = document.getElementById('earChart').getContext('2d');
+
+const earChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'EAR',
+            data: earData,
+            borderColor: 'blue',
+            fill: false,
+            tension: 0.3
+        }]
+    },
+    options: {
+        animation: false,
+        scales: {
+            y: {
+                min: 0,
+                max: 0.6
+            }
+        }
+    }
+});
+
+/* ================= SESSION LIFECYCLE ================= */
+let timeLeft = 60;
+let isAnalyzing = false;
+let isStarting = false;
+let dataInterval = null;
+let timerInterval = null;
+let sessionGeneration = 0;
+
+const timerEl = document.getElementById("timer");
+const webcamEl = document.getElementById("webcam");
+const retakeButton = document.getElementById("retakeButton");
+const fatigueEl = document.getElementById("fatigue");
+const suggestionEl = document.getElementById("suggestion");
+const blinkEl = document.getElementById("blink");
+const pitchEl = document.getElementById("pitch");
+const yawEl = document.getElementById("yaw");
+const rollEl = document.getElementById("roll");
+
+function renderTimer() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timerEl.innerText = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function clearSessionIntervals() {
+    if (dataInterval !== null) {
+        clearInterval(dataInterval);
+        dataInterval = null;
+    }
+    if (timerInterval !== null) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function resetSessionDisplay() {
+    labels.length = 0;
+    earData.length = 0;
+    earChart.update();
+    fatigueEl.innerText = "ANALYZING";
+    suggestionEl.innerText = "Collecting data...";
+    blinkEl.innerText = "0";
+    pitchEl.innerText = "0";
+    yawEl.innerText = "0";
+    rollEl.innerText = "0";
+}
+
+function applyFinalResults(data) {
+    fatigueEl.innerText = data.fatigue;
+    suggestionEl.innerText = data.suggestion;
+    blinkEl.innerText = data.blink_count;
+    pitchEl.innerText = Number(data.pitch).toFixed(2);
+    yawEl.innerText = Number(data.yaw).toFixed(2);
+    rollEl.innerText = Number(data.roll).toFixed(2);
+}
+
+/* ================= DATA UPDATE ================= */
+function updateData() {
+    if (!isAnalyzing) {
+        return;
+    }
+
+    const currentGeneration = sessionGeneration;
+    fetch('/data')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Data request failed: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!isAnalyzing || currentGeneration !== sessionGeneration) {
+                return;
+            }
+
+            if (data.fatigue !== "ANALYZING") {
+                applyFinalResults(data);
+                completeAnalysis();
+                return;
+            }
+
+            applyFinalResults(data);
+            labels.push(new Date().toLocaleTimeString());
+            earData.push(data.ear);
+
+            if (labels.length > 60) {
+                labels.shift();
+                earData.shift();
+            }
+
+            earChart.update();
+        })
+        .catch(error => {
+            if (isAnalyzing && currentGeneration === sessionGeneration) {
+                console.error("Unable to update analysis data.", error);
+            }
+        });
+}
+
+/* ================= TIMER ================= */
+function completeAnalysis() {
+    if (!isAnalyzing) {
+        return;
+    }
+
+    isAnalyzing = false;
+    clearSessionIntervals();
+    timeLeft = 0;
+    renderTimer();
+    retakeButton.hidden = false;
+    retakeButton.disabled = true;
+
+    const currentGeneration = sessionGeneration;
+    fetch('/stop_analysis', { method: 'POST' })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Unable to stop analysis: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (currentGeneration === sessionGeneration) {
+                applyFinalResults(data);
+            }
+        })
+        .catch(error => {
+            console.error("Unable to confirm analysis completion.", error);
+        })
+        .finally(() => {
+            webcamEl.removeAttribute("src");
+            if (currentGeneration === sessionGeneration) {
+                retakeButton.disabled = false;
+            }
+        });
+}
+
+function updateTimer() {
+    if (!isAnalyzing) {
+        return;
+    }
+
+    timeLeft = Math.max(0, timeLeft - 1);
+    renderTimer();
+    if (timeLeft === 0) {
+        completeAnalysis();
+    }
+}
+
+/* ================= START / RETAKE ================= */
+function startAnalysis() {
+    if (isAnalyzing || isStarting) {
+        return;
+    }
+
+    isStarting = true;
+    retakeButton.disabled = true;
+    const currentGeneration = ++sessionGeneration;
+
+    fetch('/start_analysis', { method: 'POST' })
+        .then(response => response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.error || `Unable to start analysis: ${response.status}`);
+            }
+            return data;
+        }))
+        .then(data => {
+            if (currentGeneration !== sessionGeneration) {
+                return;
+            }
+
+            clearSessionIntervals();
+            resetSessionDisplay();
+            timeLeft = 60;
+            renderTimer();
+            isAnalyzing = true;
+            retakeButton.hidden = true;
+            retakeButton.disabled = false;
+            webcamEl.src = `{{ url_for('video_feed') }}?session=${encodeURIComponent(data.session_id)}`;
+
+            dataInterval = setInterval(updateData, 1000);
+            timerInterval = setInterval(updateTimer, 1000);
+        })
+        .catch(error => {
+            console.error("Unable to start the webcam analysis.", error);
+            retakeButton.hidden = false;
+            retakeButton.disabled = false;
+        })
+        .finally(() => {
+            isStarting = false;
+        });
+}
+
+retakeButton.addEventListener("click", startAnalysis);
+renderTimer();
+startAnalysis();
+</script>
+
+</body>
+</html>
